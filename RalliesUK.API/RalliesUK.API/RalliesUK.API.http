@@ -1,0 +1,6 @@
+@RalliesUK.API_HostAddress = http://localhost:5199
+
+GET {{RalliesUK.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
