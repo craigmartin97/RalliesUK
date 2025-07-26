@@ -1,0 +1,16 @@
+services:
+  sql-server:
+    image: mcr.microsoft.com/mssql/server:latest
+    container_name: sql-server-container
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: ${SQL_SERVER_PASSWORD}
+    volumes:
+      - C:/Users/cmart/docker-sql-data/backups:/var/opt/mssql/backups
+      - C:/Users/cmart/docker-sql-data/data:/var/opt/mssql/data
+      - C:/Users/cmart/docker-sql-data/log:/var/opt/mssql/log
+
+volumes:
+  sql_data:

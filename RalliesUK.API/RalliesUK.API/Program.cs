@@ -1,3 +1,4 @@
+using RalliesUK.Infrastructure.Extensions.Startup;
 
 namespace RalliesUK.API
 {
@@ -7,8 +8,21 @@ namespace RalliesUK.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // Change type of configuration to ConfigurationManager for improved performance
+            ConfigurationManager configuration = builder.Configuration;
+
+            // Create the jwt settings
+            builder.Services.AddConfiguration(configuration);
+
+            // Add entity framework context
+            builder.Services.AddEFDatabaseContext(configuration);
+
+            builder.Services.AddIdentityServices();
+
+            builder.Services.AddApiAuthentication();
             builder.Services.AddAuthorization();
+
+            builder.Services.AddServices();
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
@@ -23,7 +37,11 @@ namespace RalliesUK.API
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
+
+            // Add all required endpoints
+            app.MapAllEndpoints();
 
             app.Run();
         }
