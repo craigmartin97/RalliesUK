@@ -11,7 +11,7 @@ namespace RalliesUK.Application.Services
 
         public UserRegistrationService(UserManager<ApplicationUser> userManager)
         {
-            _userManager = userManager;
+            _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         }
 
         public async Task<IdentityResult> RegisterUserAsync(RegisterRequest registerRequest)
