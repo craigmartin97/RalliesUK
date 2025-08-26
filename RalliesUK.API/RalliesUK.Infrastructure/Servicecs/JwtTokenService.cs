@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using RalliesUK.Application.Interfaces;
 using RalliesUK.Domain.Entities;
@@ -14,18 +13,48 @@ namespace RalliesUK.Infrastructure.Servicecs
     {
         private readonly JwtSettings _jwtSettings;
         private readonly SymmetricSecurityKey _key;
+        private readonly IUserRoleService _userRoleService;
 
-        public JwtTokenService(IOptions<JwtSettings> jwtSettings)
+        public JwtTokenService(IOptions<JwtSettings> jwtSettings, IUserRoleService userRoleService)
         {
             _jwtSettings = jwtSettings.Value;
             _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SigningKey));
+            _userRoleService = userRoleService;
         }
 
-        public string CreateToken(IUserToken user, DateTime expiration)
+        public async Task<string> CreateTokenAsync(IUserToken user, DateTime expiration)
         {
             ArgumentNullException.ThrowIfNull(user, nameof(user));
 
-            if(string.IsNullOrWhiteSpace(user.Email))
+            if (expiration <= DateTime.UtcNow)
+            {
+                throw new ArgumentException("Expiration time must be in the future.", nameof(expiration));
+            }
+
+            var claims = CreateClaims(user);
+            await AddRolesToClaimsAsync(user, claims);
+
+            var creds = new SigningCredentials(_key, SecurityAlgorithms.HmacSha512Signature);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = expiration,
+                SigningCredentials = creds,
+                Issuer = _jwtSettings.Issuer,
+                Audience = _jwtSettings.Audience,
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+
+            return tokenHandler.WriteToken(token);
+        }
+
+        private static List<Claim> CreateClaims(IUserToken user)
+        {
+            if (string.IsNullOrWhiteSpace(user.Email))
             {
                 throw new ArgumentException("User email cannot be null or empty.", nameof(user));
             }
@@ -40,30 +69,23 @@ namespace RalliesUK.Infrastructure.Servicecs
                 new(JwtRegisteredClaimNames.Email, user.Email),
                 new(JwtRegisteredClaimNames.GivenName, user.UserName)
             };
+            return claims;
+        }
 
-            // NEED TO DO THIS HERE
-            //var roles = await _userManager.GetRolesAsync(user);
-            //foreach (var role in roles)
-            //{
-            //    claims.Add(new Claim(ClaimTypes.Role, role));
-            //}
+        private async Task AddRolesToClaimsAsync(IUserToken user, List<Claim> claims)
+        {
+            ArgumentNullException.ThrowIfNull(user, nameof(user));
 
-            var creds = new SigningCredentials(_key, SecurityAlgorithms.HmacSha512Signature);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
+            if (string.IsNullOrWhiteSpace(user.Email))
             {
-                Subject = new ClaimsIdentity(claims),
-                Expires = expiration, // DateTime.UtcNow.AddDays(7),
-                SigningCredentials = creds,
-                Issuer = _jwtSettings.Issuer,
-                Audience = _jwtSettings.Audience,
-            };
+                throw new ArgumentException("User email cannot be null or empty.", nameof(user));
+            }
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-
-            return tokenHandler.WriteToken(token);
+            var roles = await _userRoleService.GetRolesAsync(user.Email!);
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
         }
     }
 }

@@ -11,9 +11,9 @@ namespace RalliesUK.Infrastructure.Extensions.Endpoints
     {
         internal static void MapAuthEndpoints(this IEndpointRouteBuilder builder)
         {
-            builder.MapPost("api/auth/register", async (RegisterRequest registerRequest, IUserRegistrationService userRegistrationService) =>
+            builder.MapPost("api/auth/register", async (RegisterRequest registerRequest, IUserAuthenticationService userAuthenticationService) =>
             {
-                var res = await userRegistrationService.RegisterUserAsync(registerRequest);
+                var res = await userAuthenticationService.RegisterUserAsync(registerRequest);
                 if(res.Succeeded)
                 {
                     return Results.Ok("User registered successfully");
@@ -25,14 +25,16 @@ namespace RalliesUK.Infrastructure.Extensions.Endpoints
                 }
             });
 
-            builder.MapPost("api/auth/login", (LoginRequest loginRequest, ITokenService tokenService) =>
+            builder.MapPost("api/auth/login", async (LoginRequest loginRequest, IUserAuthenticationService userAuthenticationService, ITokenService tokenService) =>
             {
-                ApplicationUser userToken = new()
+                bool authenticated = await userAuthenticationService.LoginAsync(loginRequest.Email, loginRequest.Password);
+                if(!authenticated)
                 {
-                    Email = loginRequest.Email,
-                    UserName = loginRequest.Email,
-                };
-                string token = tokenService.CreateToken(userToken, DateTime.UtcNow.AddDays(7));
+                    return Results.Unauthorized();
+                }
+
+                // Successful login, find the full user object
+                string token = await tokenService.CreateTokenAsync(userToken, DateTime.UtcNow.AddDays(7));
                 if (!string.IsNullOrEmpty(token))
                 {
                     return Results.Ok("User logged in successfully");

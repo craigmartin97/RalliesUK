@@ -4,6 +4,6 @@ namespace RalliesUK.Application.Interfaces
 {
     public interface ITokenService
     {
-        string CreateToken(IUserToken user, DateTime expiration);
+        Task<string> CreateTokenAsync(IUserToken user, DateTime expiration);
     }
 }
