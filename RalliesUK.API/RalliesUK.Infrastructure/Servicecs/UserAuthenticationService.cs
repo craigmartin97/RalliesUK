@@ -15,28 +15,28 @@ namespace RalliesUK.Infrastructure.Servicecs
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         }
 
-        public async Task<IdentityResult> RegisterUserAsync(RegisterRequest registerRequest)
+        public async Task<IdentityResult> RegisterUserAsync(RegisterRequest request)
         {
             var user = new ApplicationUser
             {
-                UserName = registerRequest.Email,
-                Email = registerRequest.Email,
+                UserName = request.Email,
+                Email = request.Email,
             };
-            return await _userManager.CreateAsync(user, registerRequest.Password);
+            return await _userManager.CreateAsync(user, request.Password);
         }
 
-        public async Task<bool> LoginAsync(string email, string password)
+        public async Task<bool> LoginAsync(LoginRequest request)
         {
-            ArgumentNullException.ThrowIfNull(email);
-            ArgumentException.ThrowIfNullOrWhiteSpace(password);
+            ArgumentNullException.ThrowIfNull(request.Email);
+            ArgumentException.ThrowIfNullOrWhiteSpace(request.Password);
 
-            var user = await FindByEmailAsync(email).ConfigureAwait(false);
+            var user = await FindByEmailAsync(request.Email).ConfigureAwait(false);
             if (user is null)
             {
-                throw new UserNotFoundException("", email);
+                throw new UserNotFoundException("", request.Email);
             }
 
-            return await _userManager.CheckPasswordAsync(user, password);
+            return await _userManager.CheckPasswordAsync(user, request.Password);
         }
 
         private Task<ApplicationUser?> FindByEmailAsync(string email)

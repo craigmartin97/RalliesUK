@@ -5,8 +5,8 @@ namespace RalliesUK.Application.Interfaces
 {
     public interface IUserAuthenticationService
     {
-        Task<bool> LoginAsync(string email, string password);
+        Task<bool> LoginAsync(LoginRequest request);
 
-        Task<IdentityResult> RegisterUserAsync(RegisterRequest registerRequest);
+        Task<IdentityResult> RegisterUserAsync(RegisterRequest request);
     }
 }
